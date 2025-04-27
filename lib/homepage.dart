@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:youtube_download_manager/models/models.dart';
 import 'package:youtube_download_manager/services/services.dart';
+import 'dart:io' show Platform;
 
 class Homepage extends StatefulWidget {
   @override
@@ -15,6 +17,29 @@ class _HomepageState extends State<Homepage> {
   bool _isDownloading = false;
   String? _errorMessage;
 
+  Future<bool> _ensurePermissions() async {
+    if (Platform.isAndroid) {
+      // Legacy storage (API ≤29)
+      if (await Permission.storage.isDenied) {
+        await Permission.storage.request();
+      }
+      // All-files access (API ≥30)
+      if (await Permission.manageExternalStorage.isDenied) {
+        // This DOES NOT show a dialog on Android 11+ —
+        // you must send users to Settings:
+        bool opened = await openAppSettings();
+        return false;
+      }
+      return await Permission.manageExternalStorage.isGranted ||
+          await Permission.storage.isGranted;
+    } else if (Platform.isIOS) {
+      // Request photo-library permission
+      PermissionStatus status = await Permission.photos.request();
+      return status.isGranted;
+    }
+    return false;
+  }
+
   Future<void> _fetchVideoInfo() async {
     final url = _urlController.text.trim();
     if (url.isEmpty) {
@@ -25,12 +50,16 @@ class _HomepageState extends State<Homepage> {
 
     try {
       final videoInfo = await YouTubeService.fetchVideoInfo(url);
+      print("Fetched video info: ${videoInfo.title}");
       setState(() {
         _videoInfo = videoInfo;
-        _selectedResolution = videoInfo.resolutions.first;
+        _selectedResolution = videoInfo.resolutions.isNotEmpty
+            ? videoInfo.resolutions.first
+            : null;
         _errorMessage = null;
       });
     } catch (e) {
+      print("Error fetching video info: $e");
       setState(() {
         _errorMessage = 'Failed to fetch video info. Please check the URL.';
         _videoInfo = null;
@@ -39,6 +68,57 @@ class _HomepageState extends State<Homepage> {
   }
 
   Future<void> _startDownload() async {
+    // Request permissions properly based on platform
+    bool hasPermission = false;
+
+    if (Platform.isAndroid) {
+      if (await Permission.storage.isDenied ||
+          await Permission.storage.isRestricted) {
+        await Permission.storage.request();
+      }
+
+      // On Android 11+ (API 30+), we must also check manageExternalStorage
+      if (await Permission.manageExternalStorage.isDenied ||
+          await Permission.manageExternalStorage.isRestricted) {
+        await Permission.manageExternalStorage.request();
+      }
+
+      hasPermission = await Permission.manageExternalStorage.isGranted ||
+          await Permission.storage.isGranted;
+
+      // If still not granted, open settings
+      if (!hasPermission) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Please allow storage permissions in Settings.'),
+            action: SnackBarAction(
+              label: 'Open Settings',
+              onPressed: () => openAppSettings(),
+            ),
+          ),
+        );
+        return;
+      }
+    } else if (Platform.isIOS) {
+      PermissionStatus status = await Permission.photos.request();
+      hasPermission = status.isGranted;
+
+      if (!hasPermission) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Photos permission is required to save videos.'),
+          ),
+        );
+        return;
+      }
+    } else {
+      // Unsupported platform
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Unsupported platform')),
+      );
+      return;
+    }
+
     if (_videoInfo == null || _selectedResolution == null) return;
 
     setState(() {
