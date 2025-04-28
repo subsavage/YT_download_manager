@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:youtube_download_manager/models/models.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart';
@@ -10,6 +11,69 @@ import 'package:permission_handler/permission_handler.dart';
 
 class YouTubeService {
   static final YoutubeExplode _yt = YoutubeExplode();
+  static final FlutterLocalNotificationsPlugin _notificationsPlugin =
+      FlutterLocalNotificationsPlugin();
+
+  static Future<void> initializeNotifications() async {
+    const AndroidInitializationSettings initializationSettingsAndroid =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
+
+    final InitializationSettings initializationSettings =
+        InitializationSettings(
+      android: initializationSettingsAndroid,
+    );
+
+    await _notificationsPlugin.initialize(initializationSettings);
+  }
+
+  static Future<void> showDownloadProgressNotification(double progress) async {
+    const AndroidNotificationDetails androidPlatformChannelSpecifics =
+        AndroidNotificationDetails(
+      'download_channel',
+      'Downloads',
+      channelDescription: 'Shows download progress',
+      importance: Importance.high,
+      priority: Priority.high,
+      showProgress: true,
+      maxProgress: 100,
+      onlyAlertOnce: true,
+      ongoing: true,
+    );
+
+    final NotificationDetails platformChannelSpecifics = NotificationDetails(
+      android: androidPlatformChannelSpecifics,
+    );
+
+    await _notificationsPlugin.show(
+      0,
+      'Downloading...',
+      '${(progress * 100).toStringAsFixed(0)}% completed',
+      platformChannelSpecifics,
+      payload: '',
+    );
+  }
+
+  static Future<void> showDownloadCompleteNotification() async {
+    const AndroidNotificationDetails androidPlatformChannelSpecifics =
+        AndroidNotificationDetails(
+      'download_channel',
+      'Downloads',
+      channelDescription: 'Shows download progress',
+      importance: Importance.high,
+      priority: Priority.high,
+    );
+
+    final NotificationDetails platformChannelSpecifics = NotificationDetails(
+      android: androidPlatformChannelSpecifics,
+    );
+
+    await _notificationsPlugin.show(
+      0,
+      'Download Complete',
+      'The video has been saved to your gallery!',
+      platformChannelSpecifics,
+    );
+  }
 
   static Future<VideoInfo> fetchVideoInfo(String url) async {
     final video = await _yt.videos.get(url);
@@ -33,6 +97,7 @@ class YouTubeService {
     BuildContext context, {
     required void Function(double) onProgress,
   }) async {
+    await initializeNotifications();
     final yt = YoutubeExplode();
     File? tempFile;
 
@@ -71,19 +136,26 @@ class YouTubeService {
       await for (final data in stream) {
         downloaded += data.length;
         fileStream.add(data);
-        onProgress(downloaded / totalSize);
+        double progress = downloaded / totalSize;
+        onProgress(progress);
+        await showDownloadProgressNotification(progress);
       }
+
       await fileStream.close();
 
       if (!(await tempFile.exists())) {
         throw Exception('Failed to write video file to disk.');
       }
 
-      final asset = await PhotoManager.editor
-          .saveVideo(tempFile, title: "Downloaded Video");
+      final asset = await PhotoManager.editor.saveVideo(
+        tempFile,
+        title: "Downloaded Video",
+      );
       if (asset == null) {
         throw Exception('Failed to save video to gallery.');
       }
+
+      await showDownloadCompleteNotification();
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('✅ Video saved to gallery!')),
