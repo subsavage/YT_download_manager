@@ -17,21 +17,28 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("YouTube Video Downloader")),
+      appBar: AppBar(
+        title: const Text(
+          "YouTube Download Manager",
+          style: TextStyle(
+            fontSize: 18,
+          ),
+        ),
+      ),
       body: Padding(
-        padding: EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(8.0),
         child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               TextField(
                 controller: _urlController,
-                decoration: InputDecoration(
-                  hintText: 'Enter YouTube video URL',
+                decoration: const InputDecoration(
+                  hintText: 'Enter video URL',
                   border: OutlineInputBorder(),
                 ),
               ),
-              SizedBox(height: 10),
+              const SizedBox(height: 10),
               ElevatedButton(
                 onPressed: () async {
                   String url = _urlController.text.trim();
@@ -44,18 +51,22 @@ class _HomePageState extends State<HomePage> {
                     });
                   }
                 },
-                child: Text("Fetch Video Info"),
+                child: const Text("Fetch Info"),
               ),
               SizedBox(height: 20),
               _videoTitle != null && _videoTitle!.isNotEmpty
                   ? Column(
                       children: [
                         Image.network(_videoThumbnail!),
-                        Text("Title: $_videoTitle"),
-                        Text("Available Resolutions:"),
-                        for (var resolution in _resolutions!)
-                          Text("- $resolution"),
-                        SizedBox(height: 20),
+                        const SizedBox(height: 10),
+                        Text(
+                          "Title: $_videoTitle",
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
                         ElevatedButton(
                           onPressed: _isDownloading
                               ? null
@@ -82,16 +93,18 @@ class _HomePageState extends State<HomePage> {
                                     });
                                   }
                                 },
-                          child: Text("Download Video"),
+                          child: const Text("Download Video"),
                         ),
                         if (_isDownloading) ...[
-                          SizedBox(height: 20),
+                          const SizedBox(height: 20),
                           LinearProgressIndicator(
                             value: _downloadProgress,
                           ),
-                          SizedBox(height: 10),
+                          const SizedBox(height: 10),
                           Text(
                               "${(_downloadProgress * 100).toStringAsFixed(0)}% Downloaded"),
+                          const Text(
+                              "(the video will be saved in your gallery)")
                         ]
                       ],
                     )
