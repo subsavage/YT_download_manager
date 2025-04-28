@@ -1,16 +1,7 @@
-# new_app_directory
+<h1 align="center" id="title">Youtube Download Manger</h1>
 
-A new Flutter project.
+<p align="center"><img src="https://socialify.git.ci/subsavage/YT_download_manager/image?language=1&amp;name=1&amp;owner=1&amp;pattern=Circuit+Board&amp;stargazers=1&amp;theme=Dark" alt="project-image"></p>
 
-## Getting Started
+<p id="description">Paste the url of any youtube video that you want and downlaod it straight to your gallery</p>
 
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+<p align="center"><img src="https://img.shields.io/badge/Flutter-02569B?style=flat&amp;logo=flutter&amp;logoColor=white" alt="shields"></p>
